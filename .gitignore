@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.sqlite3
+db.sqlite3-journal
+
+# Environment & Secrets
+.env
+*.local
+*.pem
+*.key
+
+# Static & Media
+staticfiles/
+media/
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+celery_worker_log.txt

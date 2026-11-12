@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Email Receptionist — Agentyne{% endblock %}</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Agentyne Design System -->
+  <link href="{% static 'dashboard/css/premium.css' %}" rel="stylesheet">
+
+  {% block extra_css %}{% endblock %}
+  <script>
+    (function() {
+      const savedSidebar = localStorage.getItem('sidebar-collapsed');
+      if (savedSidebar === 'true') {
+        document.documentElement.classList.add('sidebar-collapsed');
+      }
+    })();
+  </script>
+</head>
+
+<body>
+
+  <!-- Ambient glow orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="shell">
+
+    <!-- Sidebar -->
+    {% include "components/_sidebar_nav.html" %}
+
+    <!-- Floating Toggle Button -->
+    <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+      <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px; height:12px;">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Main Content Area -->
+    <div class="main">
+
+      <!-- Topbar -->
+      {% include "components/_topbar.html" %}
+
+      <!-- Page Content -->
+      <div class="content">
+        {% include "components/_alerts.html" %}
+        {% block content %}{% endblock %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HTMX -->
+  <script src="{% static 'dashboard/js/htmx.min.js' %}"></script>
+
+  <!-- Bootstrap JS -->
+  <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+  <!-- Premium JS -->
+  <script src="{% static 'dashboard/js/premium.js' %}" defer></script>
+
+  <!-- Tooltip element -->
+  <div id="sidebar-tooltip" class="sidebar-tooltip" style="display: none; position: absolute; z-index: 9999;"></div>
+
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>

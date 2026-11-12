@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Workspace Profile — Email Receptionist{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 30px auto; padding: 0 16px;">
+  <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; box-shadow: var(--shadow-sm);">
+    
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom: 24px;">
+      <div style="background: #e10600; color:#fff; width: 48px; height: 48px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">
+        {{ request.user.first_name|first|upper|default:request.user.username|first|upper }}
+      </div>
+      <div>
+        <h2 style="margin:0; font-size:20px; font-weight:700; color:var(--text);">{{ request.user.get_full_name|default:request.user.username }}</h2>
+        <div style="color:var(--muted); font-size:13px;">{{ request.user.email|default:"No email set" }}</div>
+      </div>
+    </div>
+
+    <hr style="border-color: var(--border); margin: 20px 0;">
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <label style="font-size: 11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.04em;">Username</label>
+        <div style="font-size: 14px; font-weight:600; color:var(--text); margin-top:4px;">{{ request.user.username }}</div>
+      </div>
+
+      <div>
+        <label style="font-size: 11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.04em;">Role</label>
+        <div style="font-size: 14px; font-weight:600; color:var(--text); margin-top:4px;">
+          {% if request.user.is_superuser %}Super Administrator{% elif request.user.is_staff %}Staff Member{% else %}Workspace Member{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size: 11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.04em;">Workspace Organization</label>
+        <div style="font-size: 14px; font-weight:600; color:var(--text); margin-top:4px;">{{ request.organization.name|default:"Default Workspace" }}</div>
+      </div>
+
+      <div>
+        <label style="font-size: 11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.04em;">Customer ID</label>
+        <div style="font-size: 14px; font-weight:600; color:#e10600; margin-top:4px;">{{ request.organization.customer_id|default:"N/A" }}</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 32px; display:flex; gap:12px;">
+      <a href="{% url 'email_receptionist:dashboard' %}" class="aer-btn" style="background:#e10600; color:#fff; text-decoration:none; padding:8px 18px; border-radius:6px; font-weight:600; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+        &larr; Back to Email Receptionist
+      </a>
+      <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="aer-btn aer-btn-ghost" style="padding:8px 16px; font-size:13px;">Sign Out</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
