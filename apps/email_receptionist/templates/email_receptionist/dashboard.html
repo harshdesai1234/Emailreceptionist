@@ -1063,6 +1063,9 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 Regenerate
               </button>
+              <button class="aer-btn aer-btn-ghost" id="aerDownloadPdfBtn" onclick="aerDownloadQuotePdf()" style="border-color:#bae6fd;color:#0284c7;" title="Download branded PDF Freight Quotation for this lead">
+                <i class="fas fa-file-pdf" style="color:#ef4444;margin-right:4px;"></i> Download Quote PDF
+              </button>
             </div>
             <div style="display:flex;gap:6px;">
               <button class="aer-btn aer-btn-ghost" style="color:var(--aer-red);" onclick="aerEscalate()" title="Stop automated replies and escalate to human team">
@@ -4054,6 +4057,14 @@ Safety Guardrails & AI Tone:
       statusEl.style.color = '#dc2626';
       statusEl.innerText = '✕ Server error reading document';
     });
+  }
+
+  function aerDownloadQuotePdf() {
+    if (!aerActive || !aerActive.id) {
+      aerToast('Select an inquiry lead first');
+      return;
+    }
+    window.open(`/ai-receptionist/email/api/logistics/quote-pdf/${aerActive.id}/`, '_blank');
   }
 
   window.onload = aerInit;

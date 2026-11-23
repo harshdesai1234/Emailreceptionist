@@ -192,6 +192,8 @@ Rules:
    - "review": you wrote a reply but parts of it are uncertain, or the cargo requires custom engineering or permits you do not have.
    - "escalate": ONLY when the sender reports damaged cargo, lost goods, shipment delays, asks about insurance claims, contracts, legal disputes, billing disputes, or explicitly asks for a human manager. Still write a polite, professional holding reply.
    - "ignore": automated, transactional or bulk mail that needs no answer - receipts, OTPs, newsletters, spam. Put an empty string in "reply".
+5b. Logistics Clarification Logic: If a customer requests a freight rate or truck quotation but omits essential parameters (such as cargo type, approximate tonnage/weight, or vehicle specification), DO NOT give an inaccurate blind estimate. Instead, ask a concise, professional clarification (e.g. asking for weight/load type and required loading date) so our team can quote accurately.
+5c. POD (Proof of Delivery) Requests: If the customer asks for delivery confirmation or signed POD, and a POD link is present in the database context, include it clearly. If the shipment is still in transit, communicate the current checkpoint and reassure them that the POD will be forwarded upon delivery.
 6. In addition to the reply, extract structured logistics parameters from the email text:
    - "origin_city": pickup city or location (e.g. "Hubballi", "Mumbai", or null)
    - "destination_city": drop/delivery city (e.g. "Pune", "Delhi", or null)

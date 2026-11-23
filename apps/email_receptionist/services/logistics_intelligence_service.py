@@ -117,6 +117,9 @@ class LogisticsIntelligenceService:
             lines.append(f"Cargo: {shipment['cargo_type']} ({shipment['weight_or_volume']})")
             lines.append(f"Current Live Checkpoint / Location: {shipment['current_location']}")
             lines.append(f"Expected Delivery Schedule: {shipment['expected_delivery'] or 'In Transit'}")
+            if shipment.get('pod_document_url'):
+                lines.append(f"Signed POD Document Link: {shipment['pod_document_url']}")
+                lines.append("INSTRUCTION FOR AI: If customer asks for POD, delivery confirmation, or receipt copy, provide this link to the signed POD document.")
             if shipment.get('truck_number'):
                 lines.append(f"Allocated Vehicle: {shipment['truck_number']} ({shipment['vehicle_type']})")
                 lines.append(f"Driver Name: {shipment['driver_name']}")
@@ -191,6 +194,8 @@ class LogisticsIntelligenceService:
             'driver_name': s.driver_name,
             'driver_phone': s.driver_phone,
             'eway_bill_number': s.eway_bill_number,
+            'pod_document_url': s.pod_document_url,
+            'pod_delivered_at': s.pod_delivered_at.isoformat() if s.pod_delivered_at else None,
             'placement_reporting_time': s.placement_reporting_time,
             'remarks': s.remarks,
         }

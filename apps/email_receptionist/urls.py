@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/logistics/shipments/save/', views.api_save_shipment, name='api_save_shipment'),
     path('api/logistics/shipments/upload/', views.api_upload_dispatch_sheet, name='api_upload_dispatch_sheet'),
     path('api/logistics/webhook/tms-sync/', views.api_tms_shipment_webhook, name='api_tms_shipment_webhook'),
+    path('api/logistics/quote-pdf/<int:lead_id>/', views.api_download_quote_pdf, name='api_download_quote_pdf'),
 
     # Google 1-Click OAuth Flow
     path('auth/google/connect/', views.google_oauth_connect, name='google_oauth_connect'),

@@ -1516,6 +1516,8 @@ def api_tms_shipment_webhook(request):
             shipment.customer_name = str(item['customer_name'])[:255]
         if item.get('customer_email'):
             shipment.customer_email = str(item['customer_email']).strip()
+        if item.get('pod_document_url'):
+            shipment.pod_document_url = str(item['pod_document_url'])[:512]
         
         shipment.save()
         synced += 1
@@ -1525,5 +1527,49 @@ def api_tms_shipment_webhook(request):
         "message": f"Successfully synced {synced} shipment(s) from TMS into Email Receptionist.",
         "synced_count": synced
     })
+
+
+# ── PDF Freight Quotation Download / Attachment ────────────────────────────
+
+@login_required
+def api_download_quote_pdf(request, lead_id):
+    org = _org(request)
+    lead = _get_org_lead(request, lead_id)
+    from email_receptionist.models import LogisticsLaneRate
+    from email_receptionist.services.freight_quote_pdf_service import FreightQuotePDFService
+    from django.http import HttpResponse
+
+    # Lookup matched lane or lead parameters
+    lane = None
+    if lead.origin_city and lead.destination_city:
+        from email_receptionist.services.logistics_intelligence_service import LogisticsIntelligenceService
+        lane = LogisticsIntelligenceService.lookup_lane_rate(lead.origin_city, lead.destination_city, tenant=org)
+
+    base_rate = float(lane['base_rate']) if lane else (float(lead.est_freight_value) if lead.est_freight_value else 35000.0)
+    transit_time = lane['transit_time_label'] if lane else '24-36 Hours'
+    vehicle_type = lane['vehicle_type'] if lane else (lead.load_type or '32ft Multi-Axle')
+    detention_charge = float(lane['detention_charge_per_day']) if lane else 1500.0
+    terms = lane['terms_notes'] if lane else 'Payment terms: 90% against LR copy, balance 10% on POD submission.'
+
+    pdf_bytes = FreightQuotePDFService.generate_quote_pdf(
+        quote_number=f"QUO-{lead.id:04d}",
+        company_name=getattr(org, 'name', '') or 'Logistics Fleet Operations',
+        customer_name=lead.sender_name,
+        customer_company=lead.company_name,
+        origin_city=lead.origin_city or 'Origin City',
+        destination_city=lead.destination_city or 'Destination City',
+        vehicle_type=vehicle_type,
+        base_rate=base_rate,
+        transit_time=transit_time,
+        detention_charge=detention_charge,
+        cargo_type=lead.cargo_type or 'General Cargo',
+        weight=lead.weight_or_volume or '15 Tons',
+        terms=terms
+    )
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Freight_Quote_{lead.origin_city}_{lead.destination_city}.pdf"'
+    return response
+
 
 

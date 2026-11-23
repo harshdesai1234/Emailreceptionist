@@ -437,6 +437,10 @@ class LogisticsShipment(models.Model):
     eway_bill_number = models.CharField(max_length=64, blank=True, default='')
     placement_reporting_time = models.CharField(max_length=128, blank=True, default='', help_text="Reporting time at pickup dock")
 
+    # POD (Proof of Delivery)
+    pod_document_url = models.URLField(max_length=512, blank=True, default='', help_text="Direct link to signed POD image or PDF")
+    pod_delivered_at = models.DateTimeField(blank=True, null=True, help_text="Timestamp when cargo was signed and delivered")
+
     remarks = models.TextField(blank=True, default='', help_text="Dispatch or delay notes")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
