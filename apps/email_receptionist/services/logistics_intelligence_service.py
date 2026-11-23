@@ -194,3 +194,4 @@ class LogisticsIntelligenceService:
             'placement_reporting_time': s.placement_reporting_time,
             'remarks': s.remarks,
         }
+

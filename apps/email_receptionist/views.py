@@ -1315,3 +1315,215 @@ def api_save_shipment(request):
     shipment.save()
     return JsonResponse({'status': 'success', 'message': f'Shipment LR #{shipment.lr_number} saved.', 'shipment_id': shipment.id})
 
+
+# ── Bulk CSV / Excel Upload for Dispatch Sheets ─────────────────────────────
+
+@login_required
+@require_POST
+def api_upload_dispatch_sheet(request):
+    """
+    Parses an uploaded CSV or Excel (.xlsx) file and creates/updates
+    LogisticsShipment records in bulk.
+    """
+    org = _org(request)
+    if not org:
+        return _no_org()
+    
+    file_obj = request.FILES.get('file')
+    if not file_obj:
+        return JsonResponse({'status': 'error', 'message': 'Please choose an Excel (.xlsx) or CSV file.'}, status=400)
+    
+    filename = file_obj.name.lower()
+    rows = []
+    
+    try:
+        if filename.endswith('.csv'):
+            import csv
+            import io
+            decoded = file_obj.read().decode('utf-8-sig', errors='replace')
+            reader = csv.DictReader(io.StringIO(decoded))
+            rows = list(reader)
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            import openpyxl
+            import io
+            wb = openpyxl.load_workbook(io.BytesIO(file_obj.read()), data_only=True)
+            sheet = wb.active
+            iter_rows = list(sheet.iter_rows(values_only=True))
+            if iter_rows:
+                headers = [str(h or '').strip().lower().replace(' ', '_').replace('/', '_').replace('#', '').replace('.', '') for h in iter_rows[0]]
+                for r in iter_rows[1:]:
+                    if any(r):
+                        row_dict = {}
+                        for i, val in enumerate(r):
+                            if i < len(headers) and headers[i]:
+                                row_dict[headers[i]] = str(val or '').strip()
+                        rows.append(row_dict)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Unsupported format. Please upload a .csv or .xlsx file.'}, status=400)
+    except Exception as e:
+        logger.error(f"Error parsing dispatch sheet: {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': f'Could not read file: {str(e)}'}, status=400)
+
+    if not rows:
+        return JsonResponse({'status': 'error', 'message': 'The uploaded sheet contains no data rows.'}, status=400)
+
+    from email_receptionist.models import LogisticsShipment
+    ingested_count = 0
+    updated_count = 0
+
+    def _get_val(r, *keys):
+        for k in keys:
+            # direct key or fuzzy lookup
+            for row_k, row_v in r.items():
+                if k in row_k.lower().replace(' ', '_'):
+                    if row_v:
+                        return str(row_v).strip()
+        return ''
+
+    for r in rows:
+        lr = _get_val(r, 'lr', 'consignment', 'awb', 'docket', 'b_l', 'tracking')
+        if not lr:
+            continue
+        lr = lr.upper().replace(' ', '')
+        
+        origin = _get_val(r, 'origin', 'from', 'pickup', 'source') or 'Dispatch Hub'
+        dest = _get_val(r, 'dest', 'destination', 'to', 'delivery_city', 'drop') or 'Consignee Plant'
+        truck = _get_val(r, 'truck', 'vehicle', 'lorry', 'truck_no', 'vehicle_no')
+        driver = _get_val(r, 'driver', 'driver_name', 'pilot')
+        phone = _get_val(r, 'phone', 'mobile', 'contact', 'driver_phone')
+        location = _get_val(r, 'location', 'checkpoint', 'current_location', 'gps', 'status_remark') or 'In Transit'
+        status = _get_val(r, 'status') or 'in_transit'
+        expected = _get_val(r, 'expected', 'delivery_date', 'eta', 'delivery_time')
+
+        shipment, created = LogisticsShipment.objects.get_or_create(
+            tenant=org,
+            lr_number=lr,
+            defaults={
+                'origin_city': origin,
+                'destination_city': dest,
+                'truck_number': truck,
+                'driver_name': driver,
+                'driver_phone': phone,
+                'current_location': location,
+                'expected_delivery': expected,
+                'status': 'in_transit' if status not in dict(LogisticsShipment.STATUS_CHOICES) else status,
+            }
+        )
+        if not created:
+            if origin and origin != 'Dispatch Hub':
+                shipment.origin_city = origin
+            if dest and dest != 'Consignee Plant':
+                shipment.destination_city = dest
+            if truck:
+                shipment.truck_number = truck
+            if driver:
+                shipment.driver_name = driver
+            if phone:
+                shipment.driver_phone = phone
+            if location:
+                shipment.current_location = location
+            if expected:
+                shipment.expected_delivery = expected
+            if status in dict(LogisticsShipment.STATUS_CHOICES):
+                shipment.status = status
+            shipment.save()
+            updated_count += 1
+        else:
+            ingested_count += 1
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Processed {len(rows)} rows: {ingested_count} new shipments created, {updated_count} updated.',
+        'ingested_count': ingested_count,
+        'updated_count': updated_count
+    })
+
+
+# ── In-House TMS / ERP Inbound Webhook ──────────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def api_tms_shipment_webhook(request):
+    """
+    In-house TMS / ERP Webhook endpoint.
+    POST JSON payload with header: X-Webhook-Token: <token>
+    Supports single shipment object or list of shipment objects.
+    Payload format:
+    {
+       "lr_number": "LR-9921",
+       "origin_city": "Mumbai",
+       "destination_city": "Pune",
+       "status": "in_transit",
+       "current_location": "Passing Talegaon Toll Plaza",
+       "truck_number": "MH-12-RN-4821",
+       "vehicle_type": "32ft MXL",
+       "driver_name": "Ramesh Kumar",
+       "driver_phone": "+91 9876543210",
+       "expected_delivery": "Tomorrow by 11:00 AM",
+       "eway_bill_number": "EWB-1892019"
+    }
+    """
+    token = request.headers.get('X-Webhook-Token') or request.GET.get('token') or ''
+    from email_receptionist.models import ReceptionistConfig, LogisticsShipment
+    cfg = ReceptionistConfig.objects.filter(webhook_token=token).select_related('tenant').first() if token else None
+    if not cfg or not cfg.webhook_token or not hmac.compare_digest(cfg.webhook_token, token):
+        return JsonResponse({"status": "error", "message": "Invalid or missing webhook token."}, status=401)
+
+    data = _json_body(request)
+    items = data if isinstance(data, list) else data.get('shipments', [data]) if isinstance(data, dict) else []
+
+    if not items:
+        return JsonResponse({"status": "error", "message": "Empty or invalid JSON payload."}, status=400)
+
+    synced = 0
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        lr = str(item.get('lr_number') or item.get('lr') or item.get('docket_number') or '').strip().upper()
+        if not lr:
+            continue
+        
+        origin = str(item.get('origin_city') or item.get('origin') or 'Hub').strip()
+        dest = str(item.get('destination_city') or item.get('destination') or 'Destination').strip()
+
+        shipment, created = LogisticsShipment.objects.get_or_create(
+            tenant=cfg.tenant,
+            lr_number=lr,
+            defaults={
+                'origin_city': origin,
+                'destination_city': dest,
+            }
+        )
+        if item.get('origin_city') or item.get('origin'):
+            shipment.origin_city = origin
+        if item.get('destination_city') or item.get('destination'):
+            shipment.destination_city = dest
+        if item.get('truck_number') or item.get('vehicle_number'):
+            shipment.truck_number = str(item.get('truck_number') or item.get('vehicle_number'))[:64]
+        if item.get('driver_name'):
+            shipment.driver_name = str(item.get('driver_name'))[:128]
+        if item.get('driver_phone'):
+            shipment.driver_phone = str(item.get('driver_phone'))[:64]
+        if item.get('current_location') or item.get('gps_checkpoint'):
+            shipment.current_location = str(item.get('current_location') or item.get('gps_checkpoint'))[:255]
+        if item.get('status') in dict(LogisticsShipment.STATUS_CHOICES):
+            shipment.status = item['status']
+        if item.get('expected_delivery') or item.get('eta'):
+            shipment.expected_delivery = str(item.get('expected_delivery') or item.get('eta'))[:128]
+        if item.get('eway_bill_number'):
+            shipment.eway_bill_number = str(item['eway_bill_number'])[:64]
+        if item.get('customer_name'):
+            shipment.customer_name = str(item['customer_name'])[:255]
+        if item.get('customer_email'):
+            shipment.customer_email = str(item['customer_email']).strip()
+        
+        shipment.save()
+        synced += 1
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"Successfully synced {synced} shipment(s) from TMS into Email Receptionist.",
+        "synced_count": synced
+    })
+
+
