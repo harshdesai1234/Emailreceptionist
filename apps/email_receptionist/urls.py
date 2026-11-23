@@ -32,6 +32,12 @@ urlpatterns = [
     # Lead Thread History
     path('api/lead-messages/', views.api_get_lead_messages, name='api_get_lead_messages'),
 
+    # Logistics Intelligence (Lane Rates & Shipments)
+    path('api/logistics/rates/', views.api_list_lane_rates, name='api_list_lane_rates'),
+    path('api/logistics/rates/save/', views.api_save_lane_rate, name='api_save_lane_rate'),
+    path('api/logistics/shipments/', views.api_list_shipments, name='api_list_shipments'),
+    path('api/logistics/shipments/save/', views.api_save_shipment, name='api_save_shipment'),
+
     # Google 1-Click OAuth Flow
     path('auth/google/connect/', views.google_oauth_connect, name='google_oauth_connect'),
     path('auth/google/callback/', views.google_oauth_callback, name='google_oauth_callback'),

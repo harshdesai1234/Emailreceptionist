@@ -777,6 +777,14 @@
       </button>
       {% endif %}
 
+      <button class="aer-btn aer-btn-ghost" onclick="aerOpenLogisticsRatesModal()" style="padding:6px 10px;border-color:#bae6fd;color:#0284c7;" title="Manage lane rate cards, transit timelines, and commercial detention terms">
+        <span style="font-size:12px;">📊</span>
+        Rate Matrix
+      </button>
+      <button class="aer-btn aer-btn-ghost" onclick="aerOpenLogisticsShipmentsModal()" style="padding:6px 10px;border-color:#bbf7d0;color:#15803d;" title="Manage active shipments, live GPS checkpoints, and driver/truck placement details">
+        <span style="font-size:12px;">🚛</span>
+        Shipments &amp; Drivers
+      </button>
       <button class="aer-btn aer-btn-ghost" onclick="aerOpenTestAiModal()" style="padding:6px 10px;border-color:#c7d2fe;color:#4338ca;" title="Try a sample email and see the AI's reply. Nothing is sent.">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6L4 19a2 2 0 001.7 3h12.6a2 2 0 001.7-3L14 9V3"/></svg>
         Test AI
@@ -1072,6 +1080,147 @@
 
   </div>
 
+</div>
+
+<!-- ── LOGISTICS RATE MATRIX MODAL ── -->
+<div class="aer-modal" id="aerRatesModal">
+  <div class="aer-modal-content" style="width:780px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;">
+    <div class="aer-modal-header" style="background:#f0f9ff;padding:12px 18px;border-bottom:1px solid #bae6fd;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">📊</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#0369a1;">Freight Lane Rate Card Matrix</div>
+          <div style="font-size:11.5px;color:#0284c7;">Configure fixed rates, vehicle types, and detention terms so the AI quotes exact prices to shippers.</div>
+        </div>
+      </div>
+      <button style="background:none;border:none;cursor:pointer;font-size:22px;color:#64748b;" onclick="aerCloseLogisticsRatesModal()">&times;</button>
+    </div>
+    <div class="aer-modal-body" style="overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
+      <!-- Add New Lane Rate Form -->
+      <form id="aerRateForm" onsubmit="aerSaveLaneRate(event)" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Origin City *</label>
+          <input type="text" id="rateOrigin" required placeholder="e.g. Mumbai" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Destination City *</label>
+          <input type="text" id="rateDest" required placeholder="e.g. Pune" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Vehicle Type *</label>
+          <input type="text" id="rateVehicle" required value="32ft Multi-Axle (15T)" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Base Rate (₹) *</label>
+          <input type="number" step="0.01" id="rateBase" required placeholder="e.g. 42000" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Transit Time</label>
+          <input type="text" id="rateTransit" value="24-36 Hours" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Detention / Day (₹)</label>
+          <input type="number" step="0.01" id="rateDetention" value="1500" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;">
+          <button type="submit" class="aer-btn aer-btn-primary" style="background:#0284c7;border:none;">+ Save Lane Rate</button>
+        </div>
+      </form>
+      <!-- Rates Table -->
+      <div style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+          <thead style="background:#f1f5f9;color:#475569;font-weight:700;">
+            <tr>
+              <th style="padding:8px 10px;">Lane Route</th>
+              <th style="padding:8px 10px;">Vehicle</th>
+              <th style="padding:8px 10px;">Base Rate</th>
+              <th style="padding:8px 10px;">Transit Time</th>
+              <th style="padding:8px 10px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="aerRatesTableBody">
+            <tr><td colspan="5" style="padding:16px;text-align:center;color:#94a3b8;">Loading lane rates...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOGISTICS SHIPMENTS & VEHICLE PLACEMENT MODAL ── -->
+<div class="aer-modal" id="aerShipmentsModal">
+  <div class="aer-modal-content" style="width:840px;max-width:96vw;max-height:88vh;display:flex;flex-direction:column;">
+    <div class="aer-modal-header" style="background:#f0fdf4;padding:12px 18px;border-bottom:1px solid #bbf7d0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:22px;">🚛</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#15803d;">Consignment Tracking &amp; Driver Placement</div>
+          <div style="font-size:11.5px;color:#16a34a;">Maintain live LR numbers, truck allocations, driver contacts, and GPS location checkpoints.</div>
+        </div>
+      </div>
+      <button style="background:none;border:none;cursor:pointer;font-size:22px;color:#64748b;" onclick="aerCloseLogisticsShipmentsModal()">&times;</button>
+    </div>
+    <div class="aer-modal-body" style="overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;">
+      <!-- Add Shipment / Vehicle Placement Form -->
+      <form id="aerShipmentForm" onsubmit="aerSaveShipment(event)" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">LR / Consignment # *</label>
+          <input type="text" id="shipLr" required placeholder="e.g. LR-40921" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Route (Origin ➔ Dest) *</label>
+          <div style="display:flex;gap:4px;">
+            <input type="text" id="shipOrigin" required placeholder="Origin" class="agentyne-input" style="height:32px;font-size:11.5px;margin:0;">
+            <input type="text" id="shipDest" required placeholder="Dest" class="agentyne-input" style="height:32px;font-size:11.5px;margin:0;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Truck Number</label>
+          <input type="text" id="shipTruck" placeholder="e.g. MH-12-RN-4821" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Driver Name &amp; Phone</label>
+          <div style="display:flex;gap:4px;">
+            <input type="text" id="shipDriver" placeholder="Ramesh" class="agentyne-input" style="height:32px;font-size:11.5px;margin:0;">
+            <input type="text" id="shipDriverPhone" placeholder="+91..." class="agentyne-input" style="height:32px;font-size:11.5px;margin:0;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Current GPS Checkpoint</label>
+          <input type="text" id="shipLocation" placeholder="Near Kolhapur bypass" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px;">Status</label>
+          <select id="shipStatus" class="agentyne-input" style="height:32px;font-size:12px;margin:0;">
+            <option value="in_transit">In Transit</option>
+            <option value="placed">Vehicle Placed</option>
+            <option value="loaded">Cargo Loaded</option>
+            <option value="out_for_delivery">Out for Delivery</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+        <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;">
+          <button type="submit" class="aer-btn aer-btn-primary" style="background:#15803d;border:none;">+ Register / Update Shipment</button>
+        </div>
+      </form>
+      <!-- Shipments Table -->
+      <div style="border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+          <thead style="background:#f1f5f9;color:#475569;font-weight:700;">
+            <tr>
+              <th style="padding:8px 10px;">LR Number</th>
+              <th style="padding:8px 10px;">Route</th>
+              <th style="padding:8px 10px;">Status / Location</th>
+              <th style="padding:8px 10px;">Allocated Truck &amp; Driver</th>
+            </tr>
+          </thead>
+          <tbody id="aerShipmentsTableBody">
+            <tr><td colspan="4" style="padding:16px;text-align:center;color:#94a3b8;">Loading shipments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── GUARDRAILS & COMPANY KNOWLEDGE MODAL ── -->
@@ -3661,6 +3810,131 @@ Safety Guardrails & AI Tone:
     t.innerText = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ── Logistics Rates & Shipments JavaScript Handlers ──
+  function aerOpenLogisticsRatesModal() {
+    document.getElementById('aerRatesModal').classList.add('open');
+    aerLoadLaneRates();
+  }
+
+  function aerCloseLogisticsRatesModal() {
+    document.getElementById('aerRatesModal').classList.remove('open');
+  }
+
+  function aerLoadLaneRates() {
+    fetch("{% url 'email_receptionist:api_list_lane_rates' %}")
+      .then(r => r.json())
+      .then(data => {
+        const tbody = document.getElementById('aerRatesTableBody');
+        if (!data.rates || !data.rates.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="padding:16px;text-align:center;color:#94a3b8;">No lane rate cards configured yet. Add one above!</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.rates.map(r => `
+          <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:8px 10px;font-weight:700;color:#0f172a;">${escapeHtml(r.origin_city)} ➔ ${escapeHtml(r.destination_city)}</td>
+            <td style="padding:8px 10px;color:#475569;">${escapeHtml(r.vehicle_type)}</td>
+            <td style="padding:8px 10px;font-weight:700;color:#0284c7;">₹${Number(r.base_rate).toLocaleString('en-IN')}</td>
+            <td style="padding:8px 10px;color:#64748b;">${escapeHtml(r.transit_time_label)}</td>
+            <td style="padding:8px 10px;"><span style="background:#f0fdf4;color:#16a34a;padding:2px 6px;border-radius:4px;font-weight:700;font-size:10px;">ACTIVE</span></td>
+          </tr>
+        `).join('');
+      })
+      .catch(() => {});
+  }
+
+  function aerSaveLaneRate(e) {
+    e.preventDefault();
+    const payload = {
+      origin_city: document.getElementById('rateOrigin').value,
+      destination_city: document.getElementById('rateDest').value,
+      vehicle_type: document.getElementById('rateVehicle').value,
+      base_rate: document.getElementById('rateBase').value,
+      transit_time_label: document.getElementById('rateTransit').value,
+      detention_charge_per_day: document.getElementById('rateDetention').value,
+    };
+    fetch("{% url 'email_receptionist:api_save_lane_rate' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'success') {
+        aerToast(data.message);
+        document.getElementById('rateOrigin').value = '';
+        document.getElementById('rateDest').value = '';
+        aerLoadLaneRates();
+      } else {
+        aerToast(data.message || 'Could not save lane rate.');
+      }
+    });
+  }
+
+  function aerOpenLogisticsShipmentsModal() {
+    document.getElementById('aerShipmentsModal').classList.add('open');
+    aerLoadShipments();
+  }
+
+  function aerCloseLogisticsShipmentsModal() {
+    document.getElementById('aerShipmentsModal').classList.remove('open');
+  }
+
+  function aerLoadShipments() {
+    fetch("{% url 'email_receptionist:api_list_shipments' %}")
+      .then(r => r.json())
+      .then(data => {
+        const tbody = document.getElementById('aerShipmentsTableBody');
+        if (!data.shipments || !data.shipments.length) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:16px;text-align:center;color:#94a3b8;">No active consignments registered.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.shipments.map(s => `
+          <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:8px 10px;font-weight:700;color:#0f172a;"><i class="fas fa-barcode" style="color:#0284c7;margin-right:4px;"></i>${escapeHtml(s.lr_number)}</td>
+            <td style="padding:8px 10px;font-weight:600;color:#334155;">${escapeHtml(s.origin_city)} ➔ ${escapeHtml(s.destination_city)}</td>
+            <td style="padding:8px 10px;">
+              <span style="font-weight:700;color:#15803d;background:#f0fdf4;padding:2px 6px;border-radius:4px;font-size:10.5px;">${escapeHtml(s.status_display)}</span>
+              <div style="font-size:10px;color:#64748b;margin-top:2px;">📍 ${escapeHtml(s.current_location || 'In Transit')}</div>
+            </td>
+            <td style="padding:8px 10px;">
+              <div style="font-weight:700;color:#0f172a;">${escapeHtml(s.truck_number || 'Unallocated')}</div>
+              <div style="font-size:10px;color:#64748b;">${escapeHtml(s.driver_name)} ${escapeHtml(s.driver_phone ? '(' + s.driver_phone + ')' : '')}</div>
+            </td>
+          </tr>
+        `).join('');
+      })
+      .catch(() => {});
+  }
+
+  function aerSaveShipment(e) {
+    e.preventDefault();
+    const payload = {
+      lr_number: document.getElementById('shipLr').value,
+      origin_city: document.getElementById('shipOrigin').value,
+      destination_city: document.getElementById('shipDest').value,
+      truck_number: document.getElementById('shipTruck').value,
+      driver_name: document.getElementById('shipDriver').value,
+      driver_phone: document.getElementById('shipDriverPhone').value,
+      current_location: document.getElementById('shipLocation').value,
+      status: document.getElementById('shipStatus').value,
+    };
+    fetch("{% url 'email_receptionist:api_save_shipment' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'success') {
+        aerToast(data.message);
+        document.getElementById('shipLr').value = '';
+        aerLoadShipments();
+      } else {
+        aerToast(data.message || 'Could not save shipment.');
+      }
+    });
   }
 
   window.onload = aerInit;

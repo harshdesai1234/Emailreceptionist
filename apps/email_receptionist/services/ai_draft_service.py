@@ -231,9 +231,11 @@ def _template_block(template_body: str) -> str:
     )
 
 
-def _user_prompt(sender_name, company_name, intent, inbound_message, history) -> str:
+def _user_prompt(sender_name, company_name, intent, inbound_message, history, logistics_context: str = '') -> str:
     lines = [f"Sender: {sender_name or 'Unknown'}", f"Sender company: {company_name or 'Unknown'}",
              f"Detected intent: {intent or 'General inquiry'}", '']
+    if logistics_context:
+        lines.append(logistics_context)
     earlier = history[:-1] if history and history[-1].get('direction') == 'inbound' else history
     if earlier:
         lines.append('=== EARLIER MESSAGES IN THIS THREAD (oldest first) ===')
@@ -397,8 +399,21 @@ class AIDraftService:
             )
             template_body = (filled_template or {}).get('body', '')
 
+        # Real-time Logistics Intelligence lookup (Rate card, Tracking, Vehicle Placement)
+        logistics_context = ''
+        try:
+            from email_receptionist.services.logistics_intelligence_service import LogisticsIntelligenceService
+            tenant = getattr(config, 'tenant', None)
+            logistics_context = LogisticsIntelligenceService.build_logistics_context_for_prompt(
+                inbound_message=inbound_message,
+                sender_email='',
+                tenant=tenant
+            )
+        except Exception as e:
+            logger.debug(f'Logistics context synthesis skipped: {e}')
+
         system_prompt = _system_prompt(config, tone, role_mode, template_body, pitch)
-        user_prompt = _user_prompt(sender_name, company_name, intent, inbound_message, history)
+        user_prompt = _user_prompt(sender_name, company_name, intent, inbound_message, history, logistics_context=logistics_context)
 
         # 2. AI providers, in the configured order (Claude / OpenAI / Gemini)
         for name in provider_order():

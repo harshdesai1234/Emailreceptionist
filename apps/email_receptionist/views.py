@@ -1188,3 +1188,130 @@ def zoho_oauth_callback(request):
         logger.error(f'Zoho OAuth callback error: {e}', exc_info=True)
         django_messages.error(request, 'Zoho connection failed. Please try again.')
     return redirect('email_receptionist:dashboard')
+
+
+# ── Logistics Intelligence APIs (Lane Rates, Shipments, Placements) ────────
+
+@login_required
+def api_list_lane_rates(request):
+    org = _org(request)
+    from email_receptionist.models import LogisticsLaneRate
+    qs = LogisticsLaneRate.objects.filter(tenant=org) if org else LogisticsLaneRate.objects.all()
+    rates = [{
+        'id': r.id,
+        'origin_city': r.origin_city,
+        'destination_city': r.destination_city,
+        'vehicle_type': r.vehicle_type,
+        'rate_type': r.rate_type,
+        'rate_type_display': r.get_rate_type_display(),
+        'base_rate': float(r.base_rate),
+        'transit_days': r.transit_days,
+        'transit_time_label': r.transit_time_label,
+        'detention_charge_per_day': float(r.detention_charge_per_day),
+        'terms_notes': r.terms_notes,
+        'is_active': r.is_active,
+    } for r in qs[:50]]
+    return JsonResponse({'status': 'success', 'rates': rates})
+
+
+@login_required
+@require_POST
+def api_save_lane_rate(request):
+    org = _org(request)
+    if not org:
+        return _no_org()
+    data = _json_body(request)
+    origin = str(data.get('origin_city') or '').strip()
+    destination = str(data.get('destination_city') or '').strip()
+    base_rate = data.get('base_rate')
+    if not origin or not destination or base_rate is None:
+        return JsonResponse({'status': 'error', 'message': 'Origin, destination, and base rate are required.'}, status=400)
+    
+    from email_receptionist.models import LogisticsLaneRate
+    rate_id = data.get('id')
+    lane = LogisticsLaneRate.objects.filter(id=rate_id, tenant=org).first() if rate_id else LogisticsLaneRate(tenant=org)
+    lane.origin_city = origin
+    lane.destination_city = destination
+    lane.vehicle_type = str(data.get('vehicle_type') or '32ft Multi-Axle (15T)').strip()
+    lane.rate_type = str(data.get('rate_type') or 'flat').strip()
+    try:
+        lane.base_rate = float(base_rate)
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid base rate value.'}, status=400)
+    lane.transit_time_label = str(data.get('transit_time_label') or '24-36 Hours').strip()
+    if data.get('detention_charge_per_day'):
+        try:
+            lane.detention_charge_per_day = float(data['detention_charge_per_day'])
+        except (ValueError, TypeError):
+            pass
+    if data.get('terms_notes'):
+        lane.terms_notes = str(data['terms_notes'])[:512]
+    lane.is_active = bool(data.get('is_active', True))
+    lane.save()
+    return JsonResponse({'status': 'success', 'message': f'Lane {lane.origin_city} ➔ {lane.destination_city} saved.', 'lane_id': lane.id})
+
+
+@login_required
+def api_list_shipments(request):
+    org = _org(request)
+    from email_receptionist.models import LogisticsShipment
+    qs = LogisticsShipment.objects.filter(tenant=org) if org else LogisticsShipment.objects.all()
+    shipments = [{
+        'id': s.id,
+        'lr_number': s.lr_number,
+        'customer_name': s.customer_name,
+        'customer_email': s.customer_email,
+        'origin_city': s.origin_city,
+        'destination_city': s.destination_city,
+        'cargo_type': s.cargo_type,
+        'weight_or_volume': s.weight_or_volume,
+        'status': s.status,
+        'status_display': s.get_status_display(),
+        'current_location': s.current_location,
+        'expected_delivery': s.expected_delivery,
+        'truck_number': s.truck_number,
+        'vehicle_type': s.vehicle_type,
+        'driver_name': s.driver_name,
+        'driver_phone': s.driver_phone,
+        'eway_bill_number': s.eway_bill_number,
+        'placement_reporting_time': s.placement_reporting_time,
+        'remarks': s.remarks,
+    } for s in qs[:50]]
+    return JsonResponse({'status': 'success', 'shipments': shipments})
+
+
+@login_required
+@require_POST
+def api_save_shipment(request):
+    org = _org(request)
+    if not org:
+        return _no_org()
+    data = _json_body(request)
+    lr_number = str(data.get('lr_number') or '').strip().upper()
+    origin = str(data.get('origin_city') or '').strip()
+    dest = str(data.get('destination_city') or '').strip()
+    if not lr_number or not origin or not dest:
+        return JsonResponse({'status': 'error', 'message': 'LR number, origin, and destination are required.'}, status=400)
+
+    from email_receptionist.models import LogisticsShipment
+    shipment_id = data.get('id')
+    shipment = LogisticsShipment.objects.filter(id=shipment_id, tenant=org).first() if shipment_id else LogisticsShipment(tenant=org, lr_number=lr_number)
+    shipment.origin_city = origin
+    shipment.destination_city = dest
+    shipment.customer_name = str(data.get('customer_name') or '')[:255]
+    shipment.customer_email = str(data.get('customer_email') or '').strip() or None
+    shipment.cargo_type = str(data.get('cargo_type') or 'General Cargo')[:255]
+    shipment.weight_or_volume = str(data.get('weight_or_volume') or '15 Tons')[:128]
+    shipment.status = str(data.get('status') or 'in_transit')[:32]
+    shipment.current_location = str(data.get('current_location') or 'In Transit')[:255]
+    shipment.expected_delivery = str(data.get('expected_delivery') or '')[:128]
+    shipment.truck_number = str(data.get('truck_number') or '')[:64]
+    shipment.vehicle_type = str(data.get('vehicle_type') or '32ft Multi-Axle')[:64]
+    shipment.driver_name = str(data.get('driver_name') or '')[:128]
+    shipment.driver_phone = str(data.get('driver_phone') or '')[:64]
+    shipment.eway_bill_number = str(data.get('eway_bill_number') or '')[:64]
+    shipment.placement_reporting_time = str(data.get('placement_reporting_time') or '')[:128]
+    shipment.remarks = str(data.get('remarks') or '')
+    shipment.save()
+    return JsonResponse({'status': 'success', 'message': f'Shipment LR #{shipment.lr_number} saved.', 'shipment_id': shipment.id})
+
