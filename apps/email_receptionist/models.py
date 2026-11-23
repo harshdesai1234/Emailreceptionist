@@ -269,6 +269,16 @@ class ReceptionistLead(models.Model):
     enriched_profile = models.JSONField(default=dict, blank=True, help_text="Structured data parsed from email body/signature (title, phone, social, company).")
     is_spam = models.BooleanField(default=False)
 
+    # Logistics & Freight Specific Deal Intelligence
+    origin_city = models.CharField(max_length=128, blank=True, default='', help_text="Pickup location / Origin (e.g. Hubballi, Mumbai)")
+    destination_city = models.CharField(max_length=128, blank=True, default='', help_text="Delivery location / Destination (e.g. Pune, Delhi)")
+    cargo_type = models.CharField(max_length=255, blank=True, default='', help_text="Type of goods / cargo (e.g. Auto Spare Parts, Wooden Furniture)")
+    weight_or_volume = models.CharField(max_length=128, blank=True, default='', help_text="e.g. 15 Tons, 250 kg, 40ft Container")
+    load_type = models.CharField(max_length=32, blank=True, default='FTL', help_text="FTL (Full Truck Load), PTL (Part Load), Express, or Container")
+    pickup_timing = models.CharField(max_length=128, blank=True, default='', help_text="Pickup urgency / schedule (e.g. Immediate / Kal Subah)")
+    tracking_number = models.CharField(max_length=128, blank=True, default='', help_text="LR Number / B/L / Tracking ID if inquiry relates to existing shipment")
+    est_freight_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Estimated freight quote value in INR")
+
     # Autonomous reply scheduling & safety
     scheduled_send_at = models.DateTimeField(blank=True, null=True, db_index=True,
         help_text="When a scheduled autonomous reply will be sent (undo window).")

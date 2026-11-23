@@ -142,6 +142,14 @@ def _serialize_lead(l, suggested_slots):
         "auto_reply_count": l.auto_reply_count,
         "sequence_step": l.sequence_step,
         "slots": suggested_slots,
+        "origin_city": l.origin_city or "",
+        "destination_city": l.destination_city or "",
+        "cargo_type": l.cargo_type or "",
+        "weight_or_volume": l.weight_or_volume or "",
+        "load_type": l.load_type or "FTL",
+        "pickup_timing": l.pickup_timing or "",
+        "tracking_number": l.tracking_number or "",
+        "est_freight_value": float(l.est_freight_value) if l.est_freight_value is not None else None,
     }
 
 
@@ -223,9 +231,40 @@ def api_generate_draft(request):
     )
     if lead:
         lead.ai_draft_response = decision['reply']
-        lead.save(update_fields=['ai_draft_response', 'updated_at'])
+        update_fields = ['ai_draft_response', 'updated_at']
+        logistics_data = decision.get('logistics_deal')
+        if isinstance(logistics_data, dict):
+            if logistics_data.get('origin_city'):
+                lead.origin_city = str(logistics_data['origin_city'])[:128]
+                update_fields.append('origin_city')
+            if logistics_data.get('destination_city'):
+                lead.destination_city = str(logistics_data['destination_city'])[:128]
+                update_fields.append('destination_city')
+            if logistics_data.get('cargo_type'):
+                lead.cargo_type = str(logistics_data['cargo_type'])[:255]
+                update_fields.append('cargo_type')
+            if logistics_data.get('weight_or_volume'):
+                lead.weight_or_volume = str(logistics_data['weight_or_volume'])[:128]
+                update_fields.append('weight_or_volume')
+            if logistics_data.get('load_type'):
+                lead.load_type = str(logistics_data['load_type'])[:32]
+                update_fields.append('load_type')
+            if logistics_data.get('pickup_timing'):
+                lead.pickup_timing = str(logistics_data['pickup_timing'])[:128]
+                update_fields.append('pickup_timing')
+            if logistics_data.get('tracking_number'):
+                lead.tracking_number = str(logistics_data['tracking_number'])[:128]
+                update_fields.append('tracking_number')
+            if logistics_data.get('est_freight_value') is not None:
+                try:
+                    lead.est_freight_value = float(logistics_data['est_freight_value'])
+                    update_fields.append('est_freight_value')
+                except (ValueError, TypeError):
+                    pass
+        lead.save(update_fields=list(set(update_fields)))
     return JsonResponse({"status": "success", "draft": decision['reply'], "action": decision['action'],
                          "reason": decision.get('reason', ''), "source": decision.get('source', ''),
+                         "logistics_deal": decision.get('logistics_deal', {}),
                          "slots": CalendarService.get_suggested_demo_slots()})
 
 

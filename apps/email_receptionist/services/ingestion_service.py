@@ -201,6 +201,29 @@ class IngestionService:
         lead.ai_draft_response = decision['reply']
         lead.escalation_reason = decision.get('reason', '') if action != 'reply' else ''
 
+        # Extract & persist logistics deal parameters if discovered by the AI
+        logistics_data = decision.get('logistics_deal')
+        if isinstance(logistics_data, dict):
+            if logistics_data.get('origin_city'):
+                lead.origin_city = str(logistics_data['origin_city'])[:128]
+            if logistics_data.get('destination_city'):
+                lead.destination_city = str(logistics_data['destination_city'])[:128]
+            if logistics_data.get('cargo_type'):
+                lead.cargo_type = str(logistics_data['cargo_type'])[:255]
+            if logistics_data.get('weight_or_volume'):
+                lead.weight_or_volume = str(logistics_data['weight_or_volume'])[:128]
+            if logistics_data.get('load_type'):
+                lead.load_type = str(logistics_data['load_type'])[:32]
+            if logistics_data.get('pickup_timing'):
+                lead.pickup_timing = str(logistics_data['pickup_timing'])[:128]
+            if logistics_data.get('tracking_number'):
+                lead.tracking_number = str(logistics_data['tracking_number'])[:128]
+            if logistics_data.get('est_freight_value') is not None:
+                try:
+                    lead.est_freight_value = float(logistics_data['est_freight_value'])
+                except (ValueError, TypeError):
+                    pass
+
         # 5b. The AI recognised automated / transactional mail the keyword filter missed:
         #     file it like spam - no reply, no escalation alert.
         if action == 'ignore' and not created:
@@ -218,7 +241,11 @@ class IngestionService:
                                      'intent_category', 'qualification_score', 'scheduled_send_at', 'updated_at'])
             return lead, created, True
 
-        lead.save(update_fields=['ai_action', 'ai_draft_response', 'escalation_reason', 'updated_at'])
+        lead.save(update_fields=[
+            'ai_action', 'ai_draft_response', 'escalation_reason', 'updated_at',
+            'origin_city', 'destination_city', 'cargo_type', 'weight_or_volume',
+            'load_type', 'pickup_timing', 'tracking_number', 'est_freight_value'
+        ])
 
         # 5c. Routing Rules handling:
         if rule:
