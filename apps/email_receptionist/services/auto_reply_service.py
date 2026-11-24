@@ -39,6 +39,7 @@ class AutoReplyService:
     @classmethod
     def is_business_hours(cls, cfg, now=None) -> bool:
         local = cls._local_now(cfg, now)
+        
         if local.weekday() >= 5:  # Sat / Sun
             return False
         start, end = cfg.business_hours_start, cfg.business_hours_end

@@ -192,8 +192,6 @@ Rules:
    - "review": you wrote a reply but parts of it are uncertain, or the cargo requires custom engineering or permits you do not have.
    - "escalate": ONLY when the sender reports damaged cargo, lost goods, shipment delays, asks about insurance claims, contracts, legal disputes, billing disputes, or explicitly asks for a human manager. Still write a polite, professional holding reply.
    - "ignore": automated, transactional or bulk mail that needs no answer - receipts, OTPs, newsletters, spam. Put an empty string in "reply".
-5b. Logistics Clarification Logic: If a customer requests a freight rate or truck quotation but omits essential parameters (such as cargo type, approximate tonnage/weight, or vehicle specification), DO NOT give an inaccurate blind estimate. Instead, ask a concise, professional clarification (e.g. asking for weight/load type and required loading date) so our team can quote accurately.
-5c. POD (Proof of Delivery) Requests: If the customer asks for delivery confirmation or signed POD, and a POD link is present in the database context, include it clearly. If the shipment is still in transit, communicate the current checkpoint and reassure them that the POD will be forwarded upon delivery.
 6. In addition to the reply, extract structured logistics parameters from the email text:
    - "origin_city": pickup city or location (e.g. "Hubballi", "Mumbai", or null)
    - "destination_city": drop/delivery city (e.g. "Pune", "Delhi", or null)
@@ -233,11 +231,9 @@ def _template_block(template_body: str) -> str:
     )
 
 
-def _user_prompt(sender_name, company_name, intent, inbound_message, history, logistics_context: str = '') -> str:
+def _user_prompt(sender_name, company_name, intent, inbound_message, history) -> str:
     lines = [f"Sender: {sender_name or 'Unknown'}", f"Sender company: {company_name or 'Unknown'}",
              f"Detected intent: {intent or 'General inquiry'}", '']
-    if logistics_context:
-        lines.append(logistics_context)
     earlier = history[:-1] if history and history[-1].get('direction') == 'inbound' else history
     if earlier:
         lines.append('=== EARLIER MESSAGES IN THIS THREAD (oldest first) ===')
@@ -401,21 +397,8 @@ class AIDraftService:
             )
             template_body = (filled_template or {}).get('body', '')
 
-        # Real-time Logistics Intelligence lookup (Rate card, Tracking, Vehicle Placement)
-        logistics_context = ''
-        try:
-            from email_receptionist.services.logistics_intelligence_service import LogisticsIntelligenceService
-            tenant = getattr(config, 'tenant', None)
-            logistics_context = LogisticsIntelligenceService.build_logistics_context_for_prompt(
-                inbound_message=inbound_message,
-                sender_email='',
-                tenant=tenant
-            )
-        except Exception as e:
-            logger.debug(f'Logistics context synthesis skipped: {e}')
-
         system_prompt = _system_prompt(config, tone, role_mode, template_body, pitch)
-        user_prompt = _user_prompt(sender_name, company_name, intent, inbound_message, history, logistics_context=logistics_context)
+        user_prompt = _user_prompt(sender_name, company_name, intent, inbound_message, history)
 
         # 2. AI providers, in the configured order (Claude / OpenAI / Gemini)
         for name in provider_order():
