@@ -1136,9 +1136,6 @@
               <button type="button" class="aer-btn aer-btn-ghost" onclick="aerInsertSamplePrompt()" style="font-size:11px;padding:3px 8px;border-color:#e2e8f0;color:#64748b;" title="Insert a comprehensive sample business prompt template">
                 📋 Load General Template
               </button>
-              <button type="button" class="aer-btn aer-btn-ghost" onclick="aerInsertLogisticsPrompt()" style="font-size:11px;padding:3px 9px;border-color:#bae6fd;color:#0284c7;background:#f0f9ff;font-weight:700;" title="Load Logistics & Freight Lane Matrix, LR Tracking & Policies Template">
-                Load Logistics &amp; Rate Matrix
-              </button>
               <button type="button" class="aer-btn aer-btn-ghost" onclick="aerSaveNotesAsPrompt()" style="font-size:11px;padding:3px 10px;border-color:#cbd5e1;color:#334155;" title="Save these notes as a reusable AI Prompt for routing rules">
                 💾 Save as Prompt
               </button>
@@ -2711,68 +2708,6 @@ Safety Guardrails & AI Tone:
     aerToast('📋 Generic sample prompt loaded into AI Knowledge & Brain!');
   }
 
-  function aerInsertLogisticsPrompt() {
-    const notesBox = document.getElementById('cfgRawBusinessNotes');
-    if (!notesBox) return;
-    const logisticsSample = `Business Name: Agentyne Express Freight & Logistics Ltd.
-Business Type: 3PL Road Transport, FTL / PTL Freight Forwarding & Fleet Operations
-
-Primary Lanes & Spot Freight Rate Matrix:
-- Mumbai to Pune:
-  * 32ft Multi-Axle (15 Ton): ₹28,500 (Flat trip, 12-18 hrs transit)
-  * 20ft Container / 14ft Canter (7 Ton): ₹16,500 (12 hrs transit)
-- Mumbai to Delhi / NCR:
-  * 32ft Multi-Axle (15-18 Ton): ₹72,000 (48-60 hrs transit)
-  * 40ft High-Cube Trailer: ₹98,000 (60 hrs transit)
-- Pune to Bangalore:
-  * 32ft Multi-Axle (15 Ton): ₹48,000 (30-36 hrs transit)
-  * Part Load (PTL): ₹4.20 per kg / per ton equivalent
-- Hubballi to Pune:
-  * 32ft Multi-Axle (15 Ton): ₹38,000 (24 hrs transit)
-- Other Unlisted Routes:
-  * Base rate calculated at ₹45 to ₹55 per KM depending on vehicle specification and return load availability.
-
-Standard Commercial Terms & Detention Policies:
-- Tolls, Green Tax & Highway Cess: INCLUDED in quoted freight.
-- GST: 5% extra under Reverse Charge Mechanism (RCM) or 12% with ITC.
-- Loading & Unloading Detention: First 24 hours at loading and 24 hours at unloading are FREE. Thereafter, detention charge applies at ₹1,500 per day per vehicle.
-- Payment Terms: 90% advance against loading & verified LR (Lorry Receipt) copy; balance 10% upon submission of signed clean POD (Proof of Delivery).
-- Transit Insurance: Marine transit insurance is to be covered by consignor under owner's risk policy unless specifically declared.
-
-Types of Customer Enquiries Handled by AI:
-1. Freight Quote / Spot Rate Request (RFQ):
-   - Inbound asking for trip rates between cities (e.g. "Rate for 16T Mumbai to Delhi").
-   - Action: Quote strictly according to Lane Matrix. If lane is not listed, apply base rate or state operations team will provide custom quotation.
-2. Incomplete RFQ / Missing Cargo Details:
-   - Inbound asking "Need truck tomorrow" with missing weight/type.
-   - Action: Request pickup date, material weight, volume, and vehicle type.
-3. Shipment & Consignment (LR / Docket) Tracking:
-   - Inbound asking "Status of LR-40921" or "Where is my consignment?".
-   - Action: Acknowledge LR number, provide estimated transit schedule, confirm tracking is live with operations desk.
-4. POD (Proof of Delivery) & Delivery Acknowledgments:
-   - Inbound asking for delivery confirmation or signed invoice/POD copy.
-   - Action: Confirm if delivered or in transit, and confirm signed copy will be forwarded upon dock unloading.
-5. Vehicle Placement & Driver Contact Confirmation:
-   - Inbound asking about allocated truck registration, driver details, or gate-in timing.
-   - Action: Confirm vehicle status and advise that driver details/indent are shared via dispatch SMS/email.
-6. Detention & Delay Clarifications:
-   - Inbound inquiring on detention charges, waiting fees, or transit delays.
-   - Action: State the detention policy (first 24h free, ₹1,500/day thereafter) and update on highway schedule.
-7. Cargo Damage, Accidents, or Insurance Claims:
-   - Inbound reporting damaged boxes, route accidents, or filing a claim.
-   - Action: ESCALATE immediately to Senior Fleet Manager with an empathetic holding note.
-
-Safety & Escalation Guardrails:
-- Cargo damage, accidents, route delay disputes, or insurance claims MUST be escalated immediately with a polite holding note stating our Senior Fleet Manager is reviewing the issue.`;
-
-    if (notesBox.value && notesBox.value.trim().length > 0) {
-      if (!confirm('Replace current notes with the Logistics & Freight Rate Matrix template?')) return;
-    }
-    notesBox.value = logisticsSample;
-    const countEl = document.getElementById('aerNotesCharCount');
-    if (countEl) countEl.innerText = `${logisticsSample.length} characters`;
-    aerToast('🚛 Logistics & Rate Matrix loaded into AI Knowledge & Brain!');
-  }
   let lastUploadedPdfName = '';
 
   function aerSaveNotesAsPrompt() {
