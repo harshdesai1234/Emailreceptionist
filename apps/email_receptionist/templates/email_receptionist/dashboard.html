@@ -1137,7 +1137,7 @@
                 📋 Load General Template
               </button>
               <button type="button" class="aer-btn aer-btn-ghost" onclick="aerInsertLogisticsPrompt()" style="font-size:11px;padding:3px 9px;border-color:#bae6fd;color:#0284c7;background:#f0f9ff;font-weight:700;" title="Load Logistics & Freight Lane Matrix, LR Tracking & Policies Template">
-                🚛 Load Logistics &amp; Rate Matrix
+                Load Logistics &amp; Rate Matrix
               </button>
               <button type="button" class="aer-btn aer-btn-ghost" onclick="aerSaveNotesAsPrompt()" style="font-size:11px;padding:3px 10px;border-color:#cbd5e1;color:#334155;" title="Save these notes as a reusable AI Prompt for routing rules">
                 💾 Save as Prompt
@@ -2739,19 +2739,28 @@ Standard Commercial Terms & Detention Policies:
 - Payment Terms: 90% advance against loading & verified LR (Lorry Receipt) copy; balance 10% upon submission of signed clean POD (Proof of Delivery).
 - Transit Insurance: Marine transit insurance is to be covered by consignor under owner's risk policy unless specifically declared.
 
-Consignment & LR Tracking Protocol:
-- If a customer emails with an LR / AWB / Docket number (e.g. LR-77821, LR-9921):
-  * Acknowledge the LR number immediately.
-  * State that our operations desk has verified the transit status.
-  * Provide the expected delivery schedule and inform them that our dispatch team is tracking the GPS milestone.
-- If a customer requests a signed POD copy:
-  * If shipment is delivered, state that the POD has been logged and attach or confirm the delivery timestamp.
-  * If shipment is in transit, state the current highway progress and confirm that the signed copy will be forwarded immediately upon dock discharge.
-
-Missing RFQ Detail Clarification Rules:
-- If a customer asks for a quote but omits key details (e.g. "Need truck Mumbai to Delhi"):
-  * DO NOT make up random rates.
-  * Reply politely asking for: (1) Approximate weight / cargo type (e.g. 15 Ton auto parts, machinery, cartons), (2) Vehicle preference (32ft MXL, container, open body), and (3) Required pickup date.
+Types of Customer Enquiries Handled by AI:
+1. Freight Quote / Spot Rate Request (RFQ):
+   - Inbound asking for trip rates between cities (e.g. "Rate for 16T Mumbai to Delhi").
+   - Action: Quote strictly according to Lane Matrix. If lane is not listed, apply base rate or state operations team will provide custom quotation.
+2. Incomplete RFQ / Missing Cargo Details:
+   - Inbound asking "Need truck tomorrow" with missing weight/type.
+   - Action: Request pickup date, material weight, volume, and vehicle type.
+3. Shipment & Consignment (LR / Docket) Tracking:
+   - Inbound asking "Status of LR-40921" or "Where is my consignment?".
+   - Action: Acknowledge LR number, provide estimated transit schedule, confirm tracking is live with operations desk.
+4. POD (Proof of Delivery) & Delivery Acknowledgments:
+   - Inbound asking for delivery confirmation or signed invoice/POD copy.
+   - Action: Confirm if delivered or in transit, and confirm signed copy will be forwarded upon dock unloading.
+5. Vehicle Placement & Driver Contact Confirmation:
+   - Inbound asking about allocated truck registration, driver details, or gate-in timing.
+   - Action: Confirm vehicle status and advise that driver details/indent are shared via dispatch SMS/email.
+6. Detention & Delay Clarifications:
+   - Inbound inquiring on detention charges, waiting fees, or transit delays.
+   - Action: State the detention policy (first 24h free, ₹1,500/day thereafter) and update on highway schedule.
+7. Cargo Damage, Accidents, or Insurance Claims:
+   - Inbound reporting damaged boxes, route accidents, or filing a claim.
+   - Action: ESCALATE immediately to Senior Fleet Manager with an empathetic holding note.
 
 Safety & Escalation Guardrails:
 - Cargo damage, accidents, route delay disputes, or insurance claims MUST be escalated immediately with a polite holding note stating our Senior Fleet Manager is reviewing the issue.`;
