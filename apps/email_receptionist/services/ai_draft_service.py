@@ -336,7 +336,7 @@ def _call_gemini(system_prompt: str, user_prompt: str) -> Optional[str]:
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
                 temperature=0.3,
-                max_output_tokens=1500,
+                max_output_tokens=4096,
                 response_mime_type='application/json',
             ),
         )
