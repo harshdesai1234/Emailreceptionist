@@ -77,6 +77,12 @@ class AutoReplyService:
             lead.save(update_fields=['status', 'escalation_reason', 'scheduled_send_at', 'updated_at'])
             if cfg and cfg.is_autonomous_mode:
                 cls.notify_escalation(lead, reason=lead.escalation_reason)
+                if lead.ai_draft_response and cls.is_within_coverage(cfg) and lead.auto_reply_count < (cfg.max_auto_replies_per_thread or 0):
+                    from email_receptionist.services.email_dispatch_service import EmailDispatchService
+                    if EmailDispatchService.dispatch_receptionist_reply(lead=lead, draft_text=lead.ai_draft_response):
+                        lead.status = 'escalated'
+                        lead.auto_reply_count = (lead.auto_reply_count or 0) + 1
+                        lead.save(update_fields=['status', 'auto_reply_count', 'updated_at'])
             return 'escalated'
 
         if not cfg or not cfg.is_autonomous_mode:
